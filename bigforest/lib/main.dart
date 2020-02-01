@@ -28,7 +28,7 @@ class Graph extends StatefulWidget{
 class _GraphState extends State<Graph>{
   @override
   Widget build(BuildContext context){
-    Data d = Data();
+    /*Data d = Data();
     int monday = d.day[0];
     int tuesday = d.day[1];
     int wednesday = d.day[2];
@@ -36,15 +36,15 @@ class _GraphState extends State<Graph>{
     int friday = d.day[4];
     int saturday = d.day[5];
     int sunday = d.day[6];
-
+*/
     var data = [
-      DozingPerDay('Mn', monday, Colors.blue),
-      DozingPerDay('Tu', tuesday, Colors.blue),
-      DozingPerDay('Wd', wednesday, Colors.blue),
-      DozingPerDay('Th', thursday, Colors.blue),
-      DozingPerDay('Fr', friday, Colors.blue),
-      DozingPerDay('Sa', saturday, Colors.blue),
-      DozingPerDay('Su', sunday, Colors.blue),
+      DozingPerDay('Mn', /*monday*/ 1, Colors.blue),
+      DozingPerDay('Tu', /*tuesday*/2, Colors.blue),
+      DozingPerDay('Wd', /*wednesday*/3, Colors.blue),
+      DozingPerDay('Th', /*thursday*/4, Colors.blue),
+      DozingPerDay('Fr', /*friday*/5, Colors.blue),
+      DozingPerDay('Sa', /*saturday*/6, Colors.blue),
+      DozingPerDay('Su', /*sunday*/7, Colors.blue),
     ];
 
     var series = [
@@ -119,6 +119,7 @@ class Data {
 
   Data(){
     if(_now.day != getDayData()){
+      saveDayData(_now.day);
       switch(_now.day){
         case DateTime.monday:
         saveSundayData(getTodayData());
@@ -225,7 +226,7 @@ class Data {
     saveIntData('Today', num);
   }
 
-  void saveDay(int day) async {
+  void saveDayData(int day) async {
     saveIntData('Day', day);
   }
 
@@ -259,7 +260,7 @@ class Data {
 
   // 各曜日のデータ取得
 
-  getTodayData() async {
+  getTodayData(){
     return getIntData('Today');
   }
 

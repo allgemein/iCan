@@ -1,111 +1,365 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
+
 
 void main() => runApp(MyApp());
-
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    title:'Doz',
+    home:Graph(title: 'Doz'),
+  );
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+class Graph extends StatefulWidget{
+  Graph({Key key, this.title}):super(key:key);
 
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _GraphState createState() => _GraphState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
+class _GraphState extends State<Graph>{
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+  Widget build(BuildContext context){
+    int monday = Data().day[0];
+    int tuesday = Data().day[1];
+    int wednesday = Data().day[2];
+    int thursday = Data().day[3];
+    int friday = Data().day[4];
+    int saturday = Data().day[5];
+    int sunday = Data().day[6];
+
+    var data = [
+      DozingPerDay('Mn', monday, Colors.blue),
+      DozingPerDay('Tu', tuesday, Colors.blue),
+      DozingPerDay('Wd', wednesday, Colors.blue),
+      DozingPerDay('Th', thursday, Colors.blue),
+      DozingPerDay('Fr', friday, Colors.blue),
+      DozingPerDay('Sa', saturday, Colors.blue),
+      DozingPerDay('Su', sunday, Colors.blue),
+    ];
+
+    var series = [
+      charts.Series(
+        id: 'Dozing Time',
+        domainFn: (DozingPerDay dozingData, _) => dozingData.day,
+        measureFn: (DozingPerDay dozingData, _) => dozingData.dozingTime,
+        colorFn: (DozingPerDay dozingData, _) => dozingData.color,
+        data: data,
+      ),
+    ];
+
+    var chart = charts.BarChart(
+      series,
+      animate: true,
+    );
+
+    var chartWidget = Padding(
+      padding: EdgeInsets.all(32.0),
+      child: SizedBox(
+        height: 200.0,
+        child: chart,
+      ),
+    );
+
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
-            ),
+            chartWidget
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      )
     );
+  }
+}
+
+
+
+class DozingPerDay {
+  final String day;
+  final int dozingTime;
+  final charts.Color color;
+
+  DozingPerDay(this.day, this.dozingTime, Color color)
+    :this.color = charts.Color(
+      r: color.red, g: color.green, b: color.blue, a:color.alpha
+    );
+}
+
+/*
+  DateTime.day
+  monday:1
+  tuesday:2
+  wednesday:3
+  thursday:4
+  friday:5
+  saturday:6
+  sunday:7
+*/
+// https://api.dart.dev/stable/2.7.1/dart-core/DateTime-class.html
+
+class Data {
+  Doze dozing = Doze();
+  var day = List.filled(7, 0);
+  DateTime _now = DateTime.now();
+
+  Data(){
+    if(_now.day != getDayData()){
+      switch(_now.day){
+        case DateTime.monday:
+        saveSundayData(getTodayData());
+        break;
+        case DateTime.tuesday:
+        saveMondayData(getTodayData());
+        break;
+        case DateTime.wednesday:
+        saveTuesdayData(getTodayData());
+        break;
+        case DateTime.thursday:
+        saveWednesdayData(getTodayData());
+        break;
+        case DateTime.friday:
+        saveThursdayData(getTodayData());
+        break;
+        case DateTime.saturday:
+        saveFridayData(getTodayData());
+        break;
+        case DateTime.sunday:
+        saveSaturdayData(getTodayData());
+        break;
+      }
+      removeTodayData();
+      saveTodayData(_now.day);
+    }
+
+    // データ削除
+    if(_now.day == DateTime.monday){
+      removeData();
+    }
+
+    // 曜日ごとのデータを同期
+    day[0] = getMondayData();
+    day[1] = getTuesdayData();
+    day[2] = getWednesdayData();
+    day[3] = getThursdayData();
+    day[4] = getFridayData();
+    day[5] = getSaturdayData();
+    day[6] = getSundayData();
+
+    // 今日のデータを同期
+    switch(_now.day){
+      case DateTime.monday:
+      day[0] = getTodayData();
+      break;
+      case DateTime.tuesday:
+      day[1] = getTodayData();
+      break;
+      case DateTime.wednesday:
+      day[2] = getTodayData();
+      break;
+      case DateTime.thursday:
+      day[3] = getTodayData();
+      break;
+      case DateTime.friday:
+      day[4] = getTodayData();
+      break;
+      case DateTime.saturday:
+      day[5] = getTodayData();
+      break;
+      case DateTime.sunday:
+      day[6] = getTodayData();
+      break;
+    }
+
+    organize();
+  }
+
+  void organize() async {
+    while(true){
+      if(dozing.isDozing()){
+        saveTodayData(getTodayData() + 1);
+        switch(_now.day){
+          case DateTime.monday:
+          day[0]++;
+          break;
+          case DateTime.tuesday:
+          day[1]++;
+          break;
+          case DateTime.wednesday:
+          day[2]++;
+          break;
+          case DateTime.thursday:
+          day[3]++;
+          break;
+          case DateTime.friday:
+          day[4]++;
+          break;
+          case DateTime.saturday:
+          day[5]++;
+          break;
+          case DateTime.sunday:
+          day[6]++;
+          break;
+        }
+      }
+    }
+  }
+
+  // 各曜日のデータ保存
+
+  void saveTodayData(int num){
+    saveIntData('Today', num);
+  }
+
+  void saveDay(int day){
+    saveIntData('Day', day);
+  }
+
+  void saveMondayData(int num){
+    saveIntData('Monday', num);
+  }
+
+  void saveTuesdayData(int num){
+    saveIntData('Tuesday', num);
+  }
+
+  void saveWednesdayData(int num){
+    saveIntData('Wednesday', num);
+  }
+
+  void saveThursdayData(int num){
+    saveIntData('Thursay', num);
+  }
+
+  void saveFridayData(int num){
+    saveIntData('Friday', num);
+  }
+
+  void saveSaturdayData(int num){
+    saveIntData('Saturday', num);
+  }
+
+  void saveSundayData(int num){
+    saveIntData('Sunday', num);
+  }
+
+  // 各曜日のデータ取得
+
+  getTodayData() async {
+    return getIntData('Today');
+  }
+
+  getDayData(){
+    getIntData('Day');
+  }
+
+  getMondayData(){
+    return getIntData('Monday');
+  }
+
+  getTuesdayData(){
+    return getIntData('Tuesday');
+  }
+
+  getWednesdayData(){
+    return getIntData('Wednesday');
+  }
+
+  getThursdayData(){
+    return getIntData('Thursday');
+  }
+
+  getFridayData(){
+    return getIntData('Friday');
+  }
+
+  getSaturdayData(){
+    return getIntData('Saturday');
+  }
+
+  getSundayData(){
+    return getIntData('SunDay');
+  }
+
+  void removeData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.remove('Monday');
+    prefs.remove('Tuesday');
+    prefs.remove('Wednesday');
+    prefs.remove('Thursday');
+    prefs.remove('Friday');
+    prefs.remove('Saturday');
+    prefs.remove('Sunday');
+  }
+  void removeTodayData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.remove('Today');
+  }
+
+  // データが存在しなかった場合はnull
+  getIntData(String id) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int num = prefs.getInt(id);
+    if(num == null){
+      return 0;
+    } else {
+      return num;
+    }
+  }
+
+  void saveIntData(String id, int num) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt(id, num);
+  }
+}
+class Doze{
+  // アドレスは後で変更する
+  final String address = 'addresss';
+  String result = '';
+  List<int> data;
+
+  // 呼び出しと同時にデータ取得が始まる
+  Doze(){
+    start();
+  }
+
+  // bluetoothでデータを取得するメソッド
+  void start() async {
+    try {
+      BluetoothConnection connection = await BluetoothConnection.toAddress(address);
+      connection.input.listen((Uint8List data) {
+        String str = ascii.decode(data);
+        data = str.split(",") as Uint8List;
+        //connection.output.add(data); // Sending data
+        //接続を解除
+        if (ascii.decode(data).contains('!')) {
+          connection.finish();
+          result = 'Disconnecting by local host'; // Closing connection
+        }
+      }).onDone(() {
+        // 接続を解除
+        result = 'Disconnected by remote request';
+      });
+    }catch(exception){
+      // 接続失敗
+      result = 'failed to connect';
+    }
+  }
+
+  bool isDozing()
+  {
+    return true;
   }
 }

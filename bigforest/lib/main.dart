@@ -28,13 +28,14 @@ class Graph extends StatefulWidget{
 class _GraphState extends State<Graph>{
   @override
   Widget build(BuildContext context){
-    int monday = Data().day[0];
-    int tuesday = Data().day[1];
-    int wednesday = Data().day[2];
-    int thursday = Data().day[3];
-    int friday = Data().day[4];
-    int saturday = Data().day[5];
-    int sunday = Data().day[6];
+    Data d = Data();
+    int monday = d.day[0];
+    int tuesday = d.day[1];
+    int wednesday = d.day[2];
+    int thursday = d.day[3];
+    int friday = d.day[4];
+    int saturday = d.day[5];
+    int sunday = d.day[6];
 
     var data = [
       DozingPerDay('Mn', monday, Colors.blue),
@@ -112,6 +113,7 @@ class DozingPerDay {
 
 class Data {
   Doze dozing = Doze();
+  //List<Future<int>> day;
   var day = List.filled(7, 0);
   DateTime _now = DateTime.now();
 
@@ -219,39 +221,39 @@ class Data {
 
   // 各曜日のデータ保存
 
-  void saveTodayData(int num){
+  void saveTodayData(int num) async {
     saveIntData('Today', num);
   }
 
-  void saveDay(int day){
+  void saveDay(int day) async {
     saveIntData('Day', day);
   }
 
-  void saveMondayData(int num){
+  void saveMondayData(int num) async {
     saveIntData('Monday', num);
   }
 
-  void saveTuesdayData(int num){
+  void saveTuesdayData(int num) async {
     saveIntData('Tuesday', num);
   }
 
-  void saveWednesdayData(int num){
+  void saveWednesdayData(int num) async {
     saveIntData('Wednesday', num);
   }
 
-  void saveThursdayData(int num){
+  void saveThursdayData(int num) async {
     saveIntData('Thursay', num);
   }
 
-  void saveFridayData(int num){
+  void saveFridayData(int num) async {
     saveIntData('Friday', num);
   }
 
-  void saveSaturdayData(int num){
+  void saveSaturdayData(int num) async {
     saveIntData('Saturday', num);
   }
 
-  void saveSundayData(int num){
+  void saveSundayData(int num) async {
     saveIntData('Sunday', num);
   }
 
@@ -262,7 +264,7 @@ class Data {
   }
 
   getDayData(){
-    getIntData('Day');
+    return getIntData('Day');
   }
 
   getMondayData(){

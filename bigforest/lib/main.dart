@@ -1,3 +1,5 @@
+import 'dart:async';
+//import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:typed_data';
@@ -5,90 +7,83 @@ import 'dart:convert';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
-
+import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-    title:'Doz',
-    home:Graph(title: 'Doz'),
-  );
-}
 
-class Graph extends StatefulWidget{
-  Graph({Key key, this.title}):super(key:key);
-
-  final String title;
-
-  @override
-  _GraphState createState() => _GraphState();
-}
-
-class _GraphState extends State<Graph>{
+class MyApp extends StatelessWidget{
+  MyApp({Key key}) : super(key: key);
   @override
   Widget build(BuildContext context){
-    /*Data d = Data();
-    int monday = d.day[0];
-    int tuesday = d.day[1];
-    int wednesday = d.day[2];
-    int thursday = d.day[3];
-    int friday = d.day[4];
-    int saturday = d.day[5];
-    int sunday = d.day[6];
-*/
-    var data = [
-      DozingPerDay('Mn', /*monday*/ 1, Colors.blue),
-      DozingPerDay('Tu', /*tuesday*/2, Colors.blue),
-      DozingPerDay('Wd', /*wednesday*/3, Colors.blue),
-      DozingPerDay('Th', /*thursday*/4, Colors.blue),
-      DozingPerDay('Fr', /*friday*/5, Colors.blue),
-      DozingPerDay('Sa', /*saturday*/6, Colors.blue),
-      DozingPerDay('Su', /*sunday*/7, Colors.blue),
-    ];
-
-    var series = [
-      charts.Series(
-        id: 'Dozing Time',
-        domainFn: (DozingPerDay dozingData, _) => dozingData.day,
-        measureFn: (DozingPerDay dozingData, _) => dozingData.dozingTime,
-        colorFn: (DozingPerDay dozingData, _) => dozingData.color,
-        data: data,
-      ),
-    ];
-
-    var chart = charts.BarChart(
-      series,
-      animate: true,
+    return ChangeNotifierProvider<Doze>(
+      create: (_) => Doze(),
+      child: MyHomePage(),
     );
-
-    var chartWidget = Padding(
-      padding: EdgeInsets.all(32.0),
-      child: SizedBox(
-        height: 200.0,
-        child: chart,
-      ),
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            chartWidget
-          ],
+  }
+}
+class MyHomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context){
+    final chartState = Provider.of<Doze>(context, listen: false);
+    return MaterialApp(
+      title:'Doz',
+      home:Scaffold(
+          appBar: AppBar(
+          title: Text('Doz'),
         ),
-      )
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Consumer<Doze>(
+                builder: (context, chart, child){
+                  return chartWidget(chart);
+                }
+              ),
+              Consumer<Doze>(
+                builder: (context, chart, child){
+                  return Text(chart.connectionState);
+                },
+              )
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: chartState.start,
+          tooltip: 'connecetToDevice',
+          child: Icon(Icons.bluetooth),
+        ),
+      ),
     );
   }
 }
 
+Widget chartWidget(Doze data){
+  var series = [
+    charts.Series(
+      id: 'Dozed Time',
+      domainFn: (DozingPerDay dozingData, _) => dozingData.day,
+      measureFn: (DozingPerDay dozingData, _) => dozingData.dozingTime,
+      colorFn: (DozingPerDay dozingData, _) => dozingData.color,
+      data: data.dozingData,
+    ),
+  ];
 
+  var chart = charts.BarChart(
+    series,
+    animate: true,
+  );
 
-class DozingPerDay {
+  return Padding(
+      padding: EdgeInsets.all(32.0),
+      child: SizedBox(
+      height: 200.0,
+      child: chart,
+    )
+  );
+}
+
+class DozingPerDay extends ChangeNotifier {
   final String day;
   final int dozingTime;
   final charts.Color color;
@@ -98,271 +93,114 @@ class DozingPerDay {
       r: color.red, g: color.green, b: color.blue, a:color.alpha
     );
 }
+class Doze extends ChangeNotifier {
+  // アドレスは後で変更する
+  DateTime today = DateTime.now();
+  List<DozingPerDay> _dozingData;
+  List<DozingPerDay> get dozingData => _dozingData;
+  String connectionState = 'not connected';
 
-/*
-  DateTime.day
-  monday:1
-  tuesday:2
-  wednesday:3
-  thursday:4
-  friday:5
-  saturday:6
-  sunday:7
-*/
-// https://api.dart.dev/stable/2.7.1/dart-core/DateTime-class.html
+  Doze(){
+    _dozingData = [
+      DozingPerDay('Mn', /*int.parse(getIntData('monday').toString())*/1, Colors.blue),
+      DozingPerDay('Tu', /*int.parse(getIntData('tuesday').toString())*/2, Colors.blue),
+      DozingPerDay('Wd', /*int.parse(getIntData('wednesday').toString())*/3, Colors.blue),
+      DozingPerDay('Th', /*int.parse(getIntData('thursday').toString())*/4, Colors.blue),
+      DozingPerDay('Fr', /*int.parse(getIntData('friday').toString())*/5, Colors.blue),
+      DozingPerDay('Sa', /*int.parse(getIntData('saturday').toString())*/6, Colors.blue),
+      DozingPerDay('Su', /*int.parse(getIntData('sunday').toString())*/7, Colors.blue),
+    ];
+    notifyListeners();
+    assert(_dozingData != null);
+    //start();
+  }
 
-class Data {
-  Doze dozing = Doze();
-  //List<Future<int>> day;
-  var day = List.filled(7, 0);
-  DateTime _now = DateTime.now();
-
-  Data(){
-    if(_now.day != getDayData()){
-      saveDayData(_now.day);
-      switch(_now.day){
-        case DateTime.monday:
-        saveSundayData(getTodayData());
-        break;
-        case DateTime.tuesday:
-        saveMondayData(getTodayData());
-        break;
-        case DateTime.wednesday:
-        saveTuesdayData(getTodayData());
-        break;
-        case DateTime.thursday:
-        saveWednesdayData(getTodayData());
-        break;
-        case DateTime.friday:
-        saveThursdayData(getTodayData());
-        break;
-        case DateTime.saturday:
-        saveFridayData(getTodayData());
-        break;
-        case DateTime.sunday:
-        saveSaturdayData(getTodayData());
-        break;
-      }
-      removeTodayData();
-      saveTodayData(_now.day);
-    }
-
-    // データ削除
-    if(_now.day == DateTime.monday){
+  void start() async {
+    final String address = 'addresss';
+    if(today.weekday == DateTime.monday){
       removeData();
     }
-
-    // 曜日ごとのデータを同期
-    day[0] = getMondayData();
-    day[1] = getTuesdayData();
-    day[2] = getWednesdayData();
-    day[3] = getThursdayData();
-    day[4] = getFridayData();
-    day[5] = getSaturdayData();
-    day[6] = getSundayData();
-
-    // 今日のデータを同期
-    switch(_now.day){
-      case DateTime.monday:
-      day[0] = getTodayData();
-      break;
-      case DateTime.tuesday:
-      day[1] = getTodayData();
-      break;
-      case DateTime.wednesday:
-      day[2] = getTodayData();
-      break;
-      case DateTime.thursday:
-      day[3] = getTodayData();
-      break;
-      case DateTime.friday:
-      day[4] = getTodayData();
-      break;
-      case DateTime.saturday:
-      day[5] = getTodayData();
-      break;
-      case DateTime.sunday:
-      day[6] = getTodayData();
-      break;
-    }
-
-    organize();
-  }
-
-  void organize() async {
-    while(true){
-      if(dozing.isDozing()){
-        saveTodayData(getTodayData() + 1);
-        switch(_now.day){
-          case DateTime.monday:
-          day[0]++;
-          break;
-          case DateTime.tuesday:
-          day[1]++;
-          break;
-          case DateTime.wednesday:
-          day[2]++;
-          break;
-          case DateTime.thursday:
-          day[3]++;
-          break;
-          case DateTime.friday:
-          day[4]++;
-          break;
-          case DateTime.saturday:
-          day[5]++;
-          break;
-          case DateTime.sunday:
-          day[6]++;
-          break;
+    BluetoothConnection connection = await BluetoothConnection.toAddress(address);
+    connectionState = 'connected!';
+    notifyListeners();
+      try{
+        connection.input.listen((Uint8List data) {
+        String str = ascii.decode(data);
+        List<String> strDataFromDevice = str.split(',');
+        List<int> dataFromDevice = strDataFromDevice.map(int.parse).toList();
+        if(isDozing(dataFromDevice)){ // 居眠りをしていたら
+          switch(today.weekday){
+            case DateTime.monday:
+            dozingData[0] = DozingPerDay('Mn', int.parse(getIntData('monday').toString()) + 1, Colors.blue);
+            saveIntData('monday', int.parse(('monday').toString()) + 1);
+            break;
+            case DateTime.tuesday:
+            _dozingData[1] = DozingPerDay('Tu', int.parse(getIntData('tuesday').toString()) + 1, Colors.blue);
+            saveIntData('tuesday', int.parse(('tuesday').toString()) + 1);
+            break;
+            case DateTime.wednesday:
+            _dozingData[2] = DozingPerDay('Wd', int.parse(getIntData('wednesday').toString()) + 1, Colors.blue);
+            saveIntData('wednesday', int.parse(('wednesday').toString()) + 1);
+            break;
+            case DateTime.thursday:
+            _dozingData[3] = DozingPerDay('Th', int.parse(getIntData('thursday').toString()) + 1, Colors.blue);
+            saveIntData('thursday', int.parse(('thursday').toString()) + 1);
+            break;
+            case DateTime.friday:
+            _dozingData[4] = DozingPerDay('Fr', int.parse(getIntData('friday').toString()) + 1, Colors.blue);
+            saveIntData('friday', int.parse(('friday').toString()) + 1);
+            break;
+            case DateTime.saturday:
+            _dozingData[5] = DozingPerDay('Sa', int.parse(getIntData('saturday').toString()) + 1, Colors.blue);
+            saveIntData('saturday', int.parse(('saturday').toString()) + 1);
+            break;
+            case DateTime.sunday:
+            _dozingData[6] = DozingPerDay('Su', int.parse(getIntData('sunday').toString()) + 1, Colors.blue);
+            saveIntData('sunday', int.parse(('sunday').toString()) + 1);
+            break;
+          }
+          notifyListeners();
         }
-      }
+          //接続を解除
+        if (ascii.decode(data).contains('!')) {
+          connection.finish();
+          connectionState = 'not connected';
+          notifyListeners();
+        }
+      }).onDone(() {
+        // 接続を解除したら
+      });
+    }catch(exception){
+      connectionState = 'somethig is wrong';
+      notifyListeners();
     }
   }
 
-  // 各曜日のデータ保存
-
-  void saveTodayData(int num) async {
-    saveIntData('Today', num);
+  bool isDozing(Uint8List data)
+  {
+    return false;
   }
 
-  void saveDayData(int day) async {
-    saveIntData('Day', day);
-  }
-
-  void saveMondayData(int num) async {
-    saveIntData('Monday', num);
-  }
-
-  void saveTuesdayData(int num) async {
-    saveIntData('Tuesday', num);
-  }
-
-  void saveWednesdayData(int num) async {
-    saveIntData('Wednesday', num);
-  }
-
-  void saveThursdayData(int num) async {
-    saveIntData('Thursay', num);
-  }
-
-  void saveFridayData(int num) async {
-    saveIntData('Friday', num);
-  }
-
-  void saveSaturdayData(int num) async {
-    saveIntData('Saturday', num);
-  }
-
-  void saveSundayData(int num) async {
-    saveIntData('Sunday', num);
-  }
-
-  // 各曜日のデータ取得
-
-  getTodayData(){
-    return getIntData('Today');
-  }
-
-  getDayData(){
-    return getIntData('Day');
-  }
-
-  getMondayData(){
-    return getIntData('Monday');
-  }
-
-  getTuesdayData(){
-    return getIntData('Tuesday');
-  }
-
-  getWednesdayData(){
-    return getIntData('Wednesday');
-  }
-
-  getThursdayData(){
-    return getIntData('Thursday');
-  }
-
-  getFridayData(){
-    return getIntData('Friday');
-  }
-
-  getSaturdayData(){
-    return getIntData('Saturday');
-  }
-
-  getSundayData(){
-    return getIntData('SunDay');
-  }
-
-  void removeData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.remove('Monday');
-    prefs.remove('Tuesday');
-    prefs.remove('Wednesday');
-    prefs.remove('Thursday');
-    prefs.remove('Friday');
-    prefs.remove('Saturday');
-    prefs.remove('Sunday');
-  }
-  void removeTodayData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.remove('Today');
-  }
-
-  // データが存在しなかった場合はnull
-  getIntData(String id) async {
+  Future<int> getIntData(String id) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int num = prefs.getInt(id);
-    if(num == null){
-      return 0;
-    } else {
-      return num;
-    }
+    //print(num.runtimeType);
+    return num ?? 0;
   }
 
   void saveIntData(String id, int num) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setInt(id, num);
   }
-}
-class Doze{
-  // アドレスは後で変更する
-  final String address = 'addresss';
-  String result = '';
-  List<int> data;
 
-  // 呼び出しと同時にデータ取得が始まる
-  Doze(){
-    start();
-  }
-
-  // bluetoothでデータを取得するメソッド
-  void start() async {
-    try {
-      BluetoothConnection connection = await BluetoothConnection.toAddress(address);
-      connection.input.listen((Uint8List data) {
-        String str = ascii.decode(data);
-        data = str.split(",") as Uint8List;
-        //connection.output.add(data); // Sending data
-        //接続を解除
-        if (ascii.decode(data).contains('!')) {
-          connection.finish();
-          result = 'Disconnecting by local host'; // Closing connection
-        }
-      }).onDone(() {
-        // 接続を解除
-        result = 'Disconnected by remote request';
-      });
-    }catch(exception){
-      // 接続失敗
-      result = 'failed to connect';
-    }
-  }
-
-  bool isDozing()
-  {
-    return true;
+  void removeData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.remove('monday');
+    prefs.remove('tuesday');
+    prefs.remove('wednesday');
+    prefs.remove('thursday');
+    prefs.remove('friday');
+    prefs.remove('saturday');
+    prefs.remove('sunday');
   }
 }

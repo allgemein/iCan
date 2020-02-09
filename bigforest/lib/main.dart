@@ -96,22 +96,22 @@ class DozingPerDay extends ChangeNotifier {
 class Doze extends ChangeNotifier {
   // アドレスは後で変更する
   DateTime today = DateTime.now();
-  List<DozingPerDay> _dozingData;
+  List<DozingPerDay> _dozingData = [
+    DozingPerDay('Mn', 0, Colors.blue),
+    DozingPerDay('Tu', 0, Colors.blue),
+    DozingPerDay('Wd', 0, Colors.blue),
+    DozingPerDay('Th', 0, Colors.blue),
+    DozingPerDay('Fr', 0, Colors.blue),
+    DozingPerDay('Sa', 0, Colors.blue),
+    DozingPerDay('Su', 0, Colors.blue),
+  ];
   List<DozingPerDay> get dozingData => _dozingData;
   String connectionState = 'not connected';
 
   Doze(){
-    _dozingData = [
-      DozingPerDay('Mn', /*int.parse(getIntData('monday').toString())*/1, Colors.blue),
-      DozingPerDay('Tu', /*int.parse(getIntData('tuesday').toString())*/2, Colors.blue),
-      DozingPerDay('Wd', /*int.parse(getIntData('wednesday').toString())*/3, Colors.blue),
-      DozingPerDay('Th', /*int.parse(getIntData('thursday').toString())*/4, Colors.blue),
-      DozingPerDay('Fr', /*int.parse(getIntData('friday').toString())*/5, Colors.blue),
-      DozingPerDay('Sa', /*int.parse(getIntData('saturday').toString())*/6, Colors.blue),
-      DozingPerDay('Su', /*int.parse(getIntData('sunday').toString())*/7, Colors.blue),
-    ];
+    setupData();
     notifyListeners();
-    assert(_dozingData != null);
+    //assert(_dozingData != null);
     //start();
   }
 
@@ -129,36 +129,7 @@ class Doze extends ChangeNotifier {
         List<String> strDataFromDevice = str.split(',');
         List<int> dataFromDevice = strDataFromDevice.map(int.parse).toList();
         if(isDozing(dataFromDevice)){ // 居眠りをしていたら
-          switch(today.weekday){
-            case DateTime.monday:
-            dozingData[0] = DozingPerDay('Mn', int.parse(getIntData('monday').toString()) + 1, Colors.blue);
-            saveIntData('monday', int.parse(('monday').toString()) + 1);
-            break;
-            case DateTime.tuesday:
-            _dozingData[1] = DozingPerDay('Tu', int.parse(getIntData('tuesday').toString()) + 1, Colors.blue);
-            saveIntData('tuesday', int.parse(('tuesday').toString()) + 1);
-            break;
-            case DateTime.wednesday:
-            _dozingData[2] = DozingPerDay('Wd', int.parse(getIntData('wednesday').toString()) + 1, Colors.blue);
-            saveIntData('wednesday', int.parse(('wednesday').toString()) + 1);
-            break;
-            case DateTime.thursday:
-            _dozingData[3] = DozingPerDay('Th', int.parse(getIntData('thursday').toString()) + 1, Colors.blue);
-            saveIntData('thursday', int.parse(('thursday').toString()) + 1);
-            break;
-            case DateTime.friday:
-            _dozingData[4] = DozingPerDay('Fr', int.parse(getIntData('friday').toString()) + 1, Colors.blue);
-            saveIntData('friday', int.parse(('friday').toString()) + 1);
-            break;
-            case DateTime.saturday:
-            _dozingData[5] = DozingPerDay('Sa', int.parse(getIntData('saturday').toString()) + 1, Colors.blue);
-            saveIntData('saturday', int.parse(('saturday').toString()) + 1);
-            break;
-            case DateTime.sunday:
-            _dozingData[6] = DozingPerDay('Su', int.parse(getIntData('sunday').toString()) + 1, Colors.blue);
-            saveIntData('sunday', int.parse(('sunday').toString()) + 1);
-            break;
-          }
+          updateData();
           notifyListeners();
         }
           //接続を解除
@@ -181,16 +152,46 @@ class Doze extends ChangeNotifier {
     return false;
   }
 
-  Future<int> getIntData(String id) async {
+  void setupData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    int num = prefs.getInt(id);
-    //print(num.runtimeType);
-    return num ?? 0;
+    _dozingData = [
+      DozingPerDay('Mn', prefs.getInt(DateTime.monday.toString()) ?? 0, Colors.blue),
+      DozingPerDay('Tu', prefs.getInt(DateTime.tuesday.toString()) ?? 0, Colors.blue),
+      DozingPerDay('Wd', prefs.getInt(DateTime.wednesday.toString()) ?? 0, Colors.blue),
+      DozingPerDay('Th', prefs.getInt(DateTime.thursday.toString()) ?? 0, Colors.blue),
+      DozingPerDay('Fr', prefs.getInt(DateTime.friday.toString()) ?? 0, Colors.blue),
+      DozingPerDay('Sa', prefs.getInt(DateTime.saturday.toString()) ?? 0, Colors.blue),
+      DozingPerDay('Su', prefs.getInt(DateTime.sunday.toString()) ?? 0, Colors.blue),
+    ];
   }
 
-  void saveIntData(String id, int num) async {
+  void updateData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt(id, num);
+    int num = prefs.getInt(today.weekday.toString()) ?? 0;
+    prefs.setInt(today.weekday.toString(), num + 1);
+    switch(today.weekday){
+      case DateTime.monday:
+      _dozingData[0] = DozingPerDay('Mn', num + 1, Colors.blue);
+      break;
+      case DateTime.tuesday:
+      _dozingData[1] = DozingPerDay('Tu', num + 1, Colors.blue);
+      break;
+      case DateTime.wednesday:
+      _dozingData[2] = DozingPerDay('Wd', num + 1, Colors.blue);
+      break;
+      case DateTime.thursday:
+      _dozingData[3] = DozingPerDay('Th', num + 1, Colors.blue);
+      break;
+      case DateTime.friday:
+      _dozingData[4] = DozingPerDay('Fr', num + 1, Colors.blue);
+      break;
+      case DateTime.saturday:
+      _dozingData[5] = DozingPerDay('Sa', num + 1, Colors.blue);
+      break;
+      case DateTime.sunday:
+      _dozingData[6] = DozingPerDay('Su', num + 1, Colors.blue);
+      break;
+    }
   }
 
   void removeData() async {

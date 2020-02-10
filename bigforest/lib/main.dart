@@ -50,7 +50,15 @@ class MyHomePage extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
           onPressed: chartState.start, // ここを本番はstartにする
           tooltip: 'connecetToDevice',
-          child: Icon(Icons.bluetooth),
+          child: Consumer<Doze>(
+            builder: (context, chart, child){
+              if(chart.connectionState == 'connected!'){
+                return Icon(Icons.bluetooth_connected);
+              } else if(chart.connectionState == 'not connected') {
+                return Icon(Icons.bluetooth);
+              }
+            },
+          ),
         ),
       ),
     );
@@ -113,26 +121,21 @@ class Doze extends ChangeNotifier {
   }
 
   void start() async {
-    final String address = 'addresss';
+    final String address = '24:0A:C4:08:73:76';
     BluetoothConnection connection = await BluetoothConnection.toAddress(address);
     connectionState = 'connected!';
     notifyListeners();
       try{
         connection.input.listen((Uint8List data) {
-        String str = ascii.decode(data);
-        List<String> strDataFromDevice = str.split(',');
-        List<int> dataFromDevice = strDataFromDevice.map(int.parse).toList();
-        if(isDozing(dataFromDevice)){ // 居眠りをしていたら
-          updateData();
-        }
+        updateData();
           //接続を解除
         if (ascii.decode(data).contains('!')) {
           connection.finish();
-          connectionState = 'not connected';
-          notifyListeners();
         }
       }).onDone(() {
         // 接続を解除したら
+        connectionState = 'not connected';
+        notifyListeners();
       });
     }catch(exception){
       connectionState = 'somethig is wrong';
@@ -140,10 +143,6 @@ class Doze extends ChangeNotifier {
     }
   }
 
-  bool isDozing(Uint8List data)
-  {
-    return false;
-  }
 
   void setupData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

@@ -1,4 +1,3 @@
-import 'dart:async';
 //import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -49,7 +48,7 @@ class MyHomePage extends StatelessWidget {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: chartState.start,
+          onPressed: chartState.start, // ここを本番はstartにする
           tooltip: 'connecetToDevice',
           child: Icon(Icons.bluetooth),
         ),
@@ -95,7 +94,6 @@ class DozingPerDay extends ChangeNotifier {
 }
 class Doze extends ChangeNotifier {
   // アドレスは後で変更する
-  DateTime today = DateTime.now();
   List<DozingPerDay> _dozingData = [
     DozingPerDay('Mn', 0, Colors.blue),
     DozingPerDay('Tu', 0, Colors.blue),
@@ -110,16 +108,12 @@ class Doze extends ChangeNotifier {
 
   Doze(){
     setupData();
-    notifyListeners();
     //assert(_dozingData != null);
     //start();
   }
 
   void start() async {
     final String address = 'addresss';
-    if(today.weekday == DateTime.monday){
-      removeData();
-    }
     BluetoothConnection connection = await BluetoothConnection.toAddress(address);
     connectionState = 'connected!';
     notifyListeners();
@@ -130,7 +124,6 @@ class Doze extends ChangeNotifier {
         List<int> dataFromDevice = strDataFromDevice.map(int.parse).toList();
         if(isDozing(dataFromDevice)){ // 居眠りをしていたら
           updateData();
-          notifyListeners();
         }
           //接続を解除
         if (ascii.decode(data).contains('!')) {
@@ -154,6 +147,15 @@ class Doze extends ChangeNotifier {
 
   void setupData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    if(DateTime.now().weekday == DateTime.monday && prefs.getInt('today') != DateTime.monday){
+      prefs.remove('monday');
+      prefs.remove('tuesday');
+      prefs.remove('wednesday');
+      prefs.remove('thursday');
+      prefs.remove('friday');
+      prefs.remove('saturday');
+      prefs.remove('sunday');
+    }
     _dozingData = [
       DozingPerDay('Mn', prefs.getInt(DateTime.monday.toString()) ?? 0, Colors.blue),
       DozingPerDay('Tu', prefs.getInt(DateTime.tuesday.toString()) ?? 0, Colors.blue),
@@ -163,13 +165,34 @@ class Doze extends ChangeNotifier {
       DozingPerDay('Sa', prefs.getInt(DateTime.saturday.toString()) ?? 0, Colors.blue),
       DozingPerDay('Su', prefs.getInt(DateTime.sunday.toString()) ?? 0, Colors.blue),
     ];
+    notifyListeners();
+    prefs.setInt('today', DateTime.now().weekday);
   }
 
   void updateData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    int num = prefs.getInt(today.weekday.toString()) ?? 0;
-    prefs.setInt(today.weekday.toString(), num + 1);
-    switch(today.weekday){
+    if(DateTime.now().weekday == DateTime.monday && prefs.getInt('today') != DateTime.monday){
+      prefs.remove(DateTime.monday.toString());
+      prefs.remove(DateTime.tuesday.toString());
+      prefs.remove(DateTime.wednesday.toString());
+      prefs.remove(DateTime.thursday.toString());
+      prefs.remove(DateTime.friday.toString());
+      prefs.remove(DateTime.saturday.toString());
+      prefs.remove(DateTime.sunday.toString());
+
+      _dozingData = [
+        DozingPerDay('Mn', prefs.getInt(DateTime.monday.toString()) ?? 0, Colors.blue),
+        DozingPerDay('Tu', prefs.getInt(DateTime.tuesday.toString()) ?? 0, Colors.blue),
+        DozingPerDay('Wd', prefs.getInt(DateTime.wednesday.toString()) ?? 0, Colors.blue),
+        DozingPerDay('Th', prefs.getInt(DateTime.thursday.toString()) ?? 0, Colors.blue),
+        DozingPerDay('Fr', prefs.getInt(DateTime.friday.toString()) ?? 0, Colors.blue),
+        DozingPerDay('Sa', prefs.getInt(DateTime.saturday.toString()) ?? 0, Colors.blue),
+        DozingPerDay('Su', prefs.getInt(DateTime.sunday.toString()) ?? 0, Colors.blue),
+      ];
+    }
+    int num = prefs.getInt(DateTime.now().weekday.toString()) ?? 0;
+    prefs.setInt(DateTime.now().weekday.toString(), num + 1);
+    switch(DateTime.now().weekday){
       case DateTime.monday:
       _dozingData[0] = DozingPerDay('Mn', num + 1, Colors.blue);
       break;
@@ -192,16 +215,7 @@ class Doze extends ChangeNotifier {
       _dozingData[6] = DozingPerDay('Su', num + 1, Colors.blue);
       break;
     }
-  }
-
-  void removeData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.remove('monday');
-    prefs.remove('tuesday');
-    prefs.remove('wednesday');
-    prefs.remove('thursday');
-    prefs.remove('friday');
-    prefs.remove('saturday');
-    prefs.remove('sunday');
+    notifyListeners();
+    prefs.setInt('today', DateTime.now().weekday);
   }
 }
